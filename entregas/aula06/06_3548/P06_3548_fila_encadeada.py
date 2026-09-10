@@ -1,7 +1,4 @@
-import importlib
-
-modulo_pilha = importlib.import_module("06_3548_pilha_encadeada")
-PilhaEncadeada = modulo_pilha.PilhaEncadeada
+from P06_3548_pilha_encadeada import *
 
 class FilaEncadeada:
     """Método de instanciação."""

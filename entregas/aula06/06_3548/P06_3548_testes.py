@@ -1,11 +1,6 @@
 import unittest
-import importlib
-
-modulo_pilha = importlib.import_module("06_3548_pilha_encadeada")
-PilhaEncadeada = modulo_pilha.PilhaEncadeada
-
-modulo_fila = importlib.import_module("06_3548_fila_encadeada")
-FilaEncadeada = modulo_fila.FilaEncadeada
+from P06_3548_pilha_encadeada import *
+from P06_3548_fila_encadeada import *
 
 class TestPilhaEncadeada(unittest.TestCase):
     def test_ordem_lifo(self):
