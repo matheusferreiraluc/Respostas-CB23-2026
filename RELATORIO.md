@@ -67,3 +67,35 @@ Faltava o zero inicial na soma acumulada, fazendo as diferenças começarem na s
 A correção insere esse zero antes de `np.cumsum` e mantém `SerieTemporal`, sem modificar `self`.
 A aceitação conferia tipo, limites inválidos e imutabilidade, mas não tamanho e valores das médias.
 A janela igual ao tamanho também não era coberta; `test_media_movel_janela_igual_ao_tamanho` verifica o resultado `[11.0]`.
+
+## Marco 2
+
+### Ambiente
+
+```text
+=== Etapa 0: ambiente ===
+Python 3.13.13 | NumPy 2.5.3 | SciPy 1.18.1 | fornecido 4.0 | matrícula 3548
+```
+
+### R8 — Derivada numérica
+
+O erro diminuiu de 1,658e-5 em h = 1 para 6,224e-10 em h = 1e-5, quando atingiu o mínimo.
+Para passos maiores, o erro de truncamento da diferença adiante dominou, na ordem de O(h).
+Para menores, o arredondamento e o cancelamento na subtração de valores próximos dominam e a divisão por h amplifica o erro.
+Em h = 1e-14, `1000 + 1e-14 == 1000`: o incremento não é representável nessa escala.
+As duas avaliações da spline ficam iguais, a derivada aproximada vira zero e o erro é a própria derivada que é cerca de 0,213432888873 kPa/contagem.
+
+### R9 — Issue #7
+
+As regressões `test_kahan_um_milhao_de_decimos` e `test_kahan_recupera_unidades_entre_valores_grandes` falharam antes da correção e passaram depois.
+Como `t` já guarda a soma arredondada `s + y`, `t - (s + y)` subtrai dois resultados idênticos e zera.
+Com `(t - s) - y`, a ordem das operações permite recuperar o resíduo perdido. A aritmética de ponto flutuante não é associativa.
+No milhão de pulsos, a soma ingênua deu 100000,00000133288 L, com erro de aproximadamente 1,333e-6 L; Kahan deu 100000,0 L.
+A aceitação somava apenas dez parcelas e usava `math.isclose`, que aceita o resultado 0,9999999999999999; por isso o defeito passava despercebido.
+
+### R10 — Precisão × exatidão
+
+Para PT102, os desvios foram 0,536 kPa com a curva linear e 0,537 kPa com a spline: as duas têm precisão semelhante.
+Os viéses foram -1,806 kPa e +0,024 kPa, respectivamente. A spline ficou mais próxima dos 380 kPa de referência e foi mais exata.
+Depois de descartar cinco espúrias, a média usa 595 leituras, o que reduz o erro aleatório da média, mas não elimina o viés da curva de calibração.
+O erro da interpolação linear se repete nas conversões e permanece mesmo ao aumentar o número de leituras.
