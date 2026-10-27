@@ -5,8 +5,12 @@ dizendo qual caso ele cobre, e floats comparados com assertAlmostEqual, math.isc
 np.allclose, a não ser que a igualdade exata seja justamente o que você quer testar.
 """
 import unittest
+from datetime import datetime
 
 from elevatoria.acumuladores import AcumuladorIngenuo, AcumuladorKahan
+from elevatoria.calibracao import CurvaCalibracao
+from elevatoria.dados import Registro
+from elevatoria.medicao import medir
 
 
 class TestAcumuladorIngenuoExemplo(unittest.TestCase):
@@ -46,6 +50,35 @@ class TestAcumuladorKahanRegressao(unittest.TestCase):
 
         self.assertAlmostEqual(ingenuo.total, 0.0, delta=1e-12)
         self.assertAlmostEqual(kahan.total, 2.0, delta=1e-12)
+
+
+def _registros(contagens: list[float]) -> list[Registro]:
+    """Cria leituras de PT101 na ordem das contagens fornecidas."""
+    instante = datetime(2026, 10, 5, 8, 0, 0)
+    return [Registro(instante, "INFO", "PT101", {"contagens": c}) for c in contagens]
+
+
+class TestMedirContrato(unittest.TestCase):
+    """Regras de medir não verificadas pelos testes de aceitação."""
+
+    def test_rejeita_mad_zero(self) -> None:
+        """MAD zero levanta ValueError mesmo quando a série não é constante."""
+        identidade = CurvaCalibracao([0, 1, 2], [0, 1, 2], "linear")
+        for contagens in [[1, 1, 1, 1], [1, 1, 1, 2]]:
+            with self.subTest(contagens=contagens), self.assertRaises(ValueError):
+                medir(_registros(contagens), "PT101", identidade)
+
+    def test_filtra_apos_calibracao_nao_linear(self) -> None:
+        """O z robusto identifica espúrias nos valores calibrados pela curva não linear."""
+        quadratica = CurvaCalibracao([0, 20, 40], [0, 400, 1600], "spline")
+        contagens = [10, 11, 12, 13, 14, 15, 16, 30]
+
+        resultado = medir(_registros(contagens), "PT101", quadratica)
+
+        self.assertEqual(resultado.espurias, [7])
+        self.assertEqual(resultado.n_validas, 7)
+        # As pressões válidas são 100, 121, 144, 169, 196, 225 e 256: média 173.
+        self.assertAlmostEqual(resultado.medida.valor, 173.0)
 
 
 if __name__ == "__main__":
